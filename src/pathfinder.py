@@ -91,13 +91,13 @@ def pathfind(problem: "MazeProblem") -> Optional[list[str]]:
                 
                 for remainder in new_targets_left:
                     if remainder in new_targets_left:
-                        targets_shot.remove(remainder)
+                        node.remaining_targets.remove(remainder)
                         
-                child_node: SearchTreeNode = SearchTreeNode(shoot_options.get("player_loc"), action, node, targets_shot, targets_shot, node.cost + shoot_options.get("cost"))
+                child_node: SearchTreeNode = SearchTreeNode(shoot_options.get("player_loc"), action, node, targets_shot, node.cost + shoot_options.get("cost"))
                 frontier.put((child_node.cost, child_node))
                 
             visited.add(node)
 
                 
                     
-    return None
+        return None
