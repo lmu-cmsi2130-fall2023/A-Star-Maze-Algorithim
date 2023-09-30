@@ -24,34 +24,23 @@ class SearchTreeNode:
         parent (Optional[SearchTreeNode]):
             The parent node from which this node was generated (or None if the root).
     """
-    player_loc: Tuple[int, int]
+    player_loc: tuple[int, int]
     action: str
     parent: Optional["SearchTreeNode"]
-    remaining_targets: Set[Tuple[int, int]]
+    targets_left: set[tuple[int, int]]
     cost: int
-    
-    def __lt__(self, other:object) -> Any:
+
+    def __lt__(self, other: "SearchTreeNode") -> bool:
         return self.cost < other.cost
-
+    
     def __hash__(self) -> int:
-        return hash((self.player_loc, self.action, frozenset(self.remaining_targets)))
-     # TODO: Add any other attributes and method overrides as necessary!
+        return hash((self.player_loc, self.action, frozenset(self.targets_left)))
     
-    def __eq__(self, __value: object) -> bool:
-        if not isinstance(__value, SearchTreeNode):
+    def __eq__(self, other: "object") -> bool:
+        if not isinstance(other, SearchTreeNode):
             return NotImplemented
-        return self.player_loc == __value.player_loc and self.action == __value.action and self.remaining_targets == __value.remaining_targets and self.targets_shot == __value.targets_shot
+        return self.player_loc == other.player_loc and self.action == other.action and self.targets_left == other.targets_left
 
-def solution(last_node: SearchTreeNode) -> list[str]:
-    solution= []
-    
-    while last_node.parent is not None:
-        solution.append(last_node.action)
-        last_node = last_node.parent
-
-    solution.reverse()
-
-    return solution
 
 def pathfind(problem: "MazeProblem") -> Optional[list[str]]:
     """
@@ -66,38 +55,92 @@ def pathfind(problem: "MazeProblem") -> Optional[list[str]]:
 
     Returns:
         Optional[list[str]]:
-            A solution to the problem: a sequence of actions leading from the 
+            A solution to the problem: a sequence of actions leading from the
             initial state to the goal (a maze with all targets destroyed). If no such solution is
             possible, returns None.
     """
-    
-    frontier: queue.PriorityQueue [Tuple[int, "SearchTreeNode"]]= queue.PriorityQueue()
-    visited: set["SearchTreeNode"] = set()
-    frontier.put((0, SearchTreeNode(problem.get_initial_loc(), "", None, problem.get_initial_targets(), 0)))
-    
-    while not frontier.empty():
-        node = frontier.get()[1]
-        if node not in visited:
-            visited.add(node.player_loc)
-            if len(node.remaining_targets) == 0:
-                return solution(node)
-            transitions = problem.get_transitions(node.player_loc, node.remaining_targets)
-            
-            
-            for action in transitions:
-                shoot_options = transitions.get(action)
-                targets_shot: Set[Tuple[int, int]] = shoot_options.get("targets_shot")
-                new_targets_left = node.remaining_targets.copy()
-                
-                for remainder in new_targets_left:
-                    if remainder in new_targets_left:
-                        node.remaining_targets.remove(remainder)
-                        
-                child_node: SearchTreeNode = SearchTreeNode(shoot_options.get("player_loc"), action, node, targets_shot, node.cost + shoot_options.get("cost"))
-                frontier.put((child_node.cost, child_node))
-                
-            visited.add(node)
 
-                
-                    
-        return None
+    visited: set["SearchTreeNode"] = set()
+    frontier: queue.PriorityQueue[Tuple[int, "SearchTreeNode"]] = queue.PriorityQueue()
+    frontier.put((0, SearchTreeNode(problem.get_initial_loc(),
+                                    "", 
+                                    None, 
+                                    problem.get_initial_targets(), 
+                                    0)))
+
+    while not frontier.empty():
+        node: "SearchTreeNode" = frontier.get()[1]
+        
+        if len(node.targets_left) == 0:
+            return going_back(node)
+        
+        if node in visited:
+            continue
+        
+        transitions = problem.get_transitions(node.player_loc, 
+                                              node.targets_left)
+        for action in transitions:
+            moves: Any = transitions.get(action)
+            targets_hit: set[tuple[int, int]] = moves.get("targets_hit")
+
+            new_remaining_targets = node.targets_left.copy()
+            for target in targets_hit:
+                if target in new_remaining_targets:
+                    new_remaining_targets.remove(target)
+
+            child_node: "SearchTreeNode" = SearchTreeNode(moves.get("next_loc"), 
+                                                          action, 
+                                                          node, 
+                                                          new_remaining_targets.copy(),
+                                                          node.cost + moves.get("cost"))
+
+            frontier.put((node.cost + len(node.targets_left) + heuristic(node), child_node))
+
+        visited.add(node)
+
+    return None
+
+def going_back(end_node: "SearchTreeNode") -> list[str]:
+    """
+    A helper method that returns the solution path from the end node to the start node.
+    
+    Parameters: 
+        end_node (SearchTreeNode):
+            The end node of the pathfinding algorithm.
+    
+    Returns:
+        list[str]:
+            The solution path from the end node to the start node.
+    """
+
+    solution = []
+
+    while end_node.parent is not None:
+        solution.append(end_node.action)
+        end_node = end_node.parent
+
+    solution.reverse()
+
+    return solution
+
+def heuristic(node: "SearchTreeNode") -> int:
+    """
+    A heuristic function that estimates the minimum cost to reach the goal state
+    based on the Manhattan distance to the nearest remaining target.
+
+    Parameters:
+        node (SearchTreeNode):
+            The current search tree node for which the heuristic is computed.
+
+    Returns:
+        int:
+            The estimated cost (heuristic value) to reach the goal state.
+    """
+    if len(node.targets_left) == 0:
+        return 0
+
+    player_loc = node.player_loc
+    nearest_target = min(node.targets_left, 
+                         key=lambda target: abs(target[0] - player_loc[0]) + abs(target[1] - player_loc[1]))
+
+    return abs(nearest_target[0] - player_loc[0]) + abs(nearest_target[1] - player_loc[1])
