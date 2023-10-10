@@ -24,6 +24,7 @@ class SearchTreeNode:
         parent (Optional[SearchTreeNode]):
             The parent node from which this node was generated (or None if the root).
     """
+    # >> [MC] Don't forget docstrings for targets_left and cost!
     player_loc: tuple[int, int]
     action: str
     parent: Optional["SearchTreeNode"]
@@ -62,6 +63,21 @@ def pathfind(problem: "MazeProblem") -> Optional[list[str]]:
 
     visited: set["SearchTreeNode"] = set()
     frontier: queue.PriorityQueue[Tuple[int, "SearchTreeNode"]] = queue.PriorityQueue()
+    # >> [MC] Uneven indentation here -- remember that each code block is indented 4 spaces and
+    # all bracket indents should match their siblings' (-0.25)
+    # >> [MC] The spacing should look like:
+    # frontier.put(
+    #     (
+    #         0,
+    #         SearchTreeNode(
+    #             problem.get_initial_loc(),
+    #             "",
+    #             None,
+    #             problem.get_initial_targets(),
+    #             0
+    #             )
+    #     )
+    # )
     frontier.put((0, SearchTreeNode(problem.get_initial_loc(),
                                     "", 
                                     None, 
@@ -100,6 +116,7 @@ def pathfind(problem: "MazeProblem") -> Optional[list[str]]:
 
     return None
 
+# >> [MC] This is an okay method name. I would suggest naming it like "get_solution" or "get_solution_path"
 def going_back(end_node: "SearchTreeNode") -> list[str]:
     """
     A helper method that returns the solution path from the end node to the start node.
@@ -144,3 +161,27 @@ def heuristic(node: "SearchTreeNode") -> int:
                          key=lambda target: abs(target[0] - player_loc[0]) + abs(target[1] - player_loc[1]))
 
     return abs(nearest_target[0] - player_loc[0]) + abs(nearest_target[1] - player_loc[1])
+
+# ===================================================
+# >>> [MC] Summary
+# Excellent submission that has a ton to like and was
+# obviously well-tested. Good delegation of labor into
+# helper methods, generally clean style, and shows
+# strong command of programming foundations alongside
+# data structure and algorithmic concepts. Keep up
+# the great work!
+# ---------------------------------------------------
+# >>> [MC] Style Checklist
+# [X] = Good, [~] = Mixed bag, [ ] = Needs improvement
+#
+# [X] Variables and helper methods named and used well
+# [~] Proper and consistent indentation and spacing
+# [X] Proper docstrings provided for ALL methods
+# [X] Logic is adequately simplified
+# [X] Code repetition is kept to a minimum
+# ---------------------------------------------------
+# Correctness:          94 / 100 (-2 / missed unit test)
+# Mypy Penalty:        -0 (-2 if mypy wasn't clean)
+# Style Penalty:       -0.25
+# Total:                93.75 / 100
+# ===================================================
